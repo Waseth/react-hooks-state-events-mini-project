@@ -1,49 +1,46 @@
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
-import NewTaskForm from "../components/NewTaskForm";
-import { CATEGORIES } from "../data";
+import CategoryFilter from "../components/CategoryFilter";
 import App from "../components/App";
+import { CATEGORIES } from "../data";
 
-test("calls the onTaskFormSubmit callback prop when the form is submitted", () => {
-  const onTaskFormSubmit = jest.fn();
-  render(
-    <NewTaskForm categories={CATEGORIES} onTaskFormSubmit={onTaskFormSubmit} />
-  );
-
-  fireEvent.change(screen.queryByLabelText(/Details/), {
-    target: { value: "Pass the tests" },
-  });
-
-  fireEvent.change(screen.queryByLabelText(/Category/), {
-    target: { value: "Code" },
-  });
-
-  fireEvent.submit(screen.queryByText(/Add task/));
-
-  expect(onTaskFormSubmit).toHaveBeenCalledWith(
-    expect.objectContaining({
-      text: "Pass the tests",
-      category: "Code",
-    })
-  );
+test("displays a button for each category", () => {
+  render(<CategoryFilter categories={CATEGORIES} />);
+  for (const category of CATEGORIES) {
+    expect(screen.queryByText(category)).toBeInTheDocument();
+  }
 });
 
-test("adds a new item to the list when the form is submitted", () => {
+test("clicking the category button adds a class of 'selected' to the button", () => {
   render(<App />);
 
-  const codeCount = screen.queryAllByText(/Code/).length;
+  const codeButton = screen.queryByRole("button", { name: "Code" });
+  const allButton = screen.queryByRole("button", { name: "All" });
 
-  fireEvent.change(screen.queryByLabelText(/Details/), {
-    target: { value: "Pass the tests" },
-  });
+  fireEvent.click(codeButton);
 
-  fireEvent.change(screen.queryByLabelText(/Category/), {
-    target: { value: "Code" },
-  });
+  expect(codeButton.classList).toContain("selected");
+  expect(allButton.classList).not.toContain("selected");
+});
 
-  fireEvent.submit(screen.queryByText(/Add task/));
+test("clicking the category button filters the task list", () => {
+  render(<App />);
 
-  expect(screen.queryByText(/Pass the tests/)).toBeInTheDocument();
+  const codeButton = screen.queryByRole("button", { name: "Code" });
 
-  expect(screen.queryAllByText(/Code/).length).toBe(codeCount + 1);
+  fireEvent.click(codeButton);
+
+  expect(screen.queryByText("Build a todo app")).toBeInTheDocument();
+  expect(screen.queryByText("Buy rice")).not.toBeInTheDocument();
+});
+
+test("displays all tasks when the 'All' button is clicked", () => {
+  render(<App />);
+
+  const allButton = screen.queryByRole("button", { name: "All" });
+
+  fireEvent.click(allButton);
+
+  expect(screen.queryByText("Build a todo app")).toBeInTheDocument();
+  expect(screen.queryByText("Buy rice")).toBeInTheDocument();
 });
